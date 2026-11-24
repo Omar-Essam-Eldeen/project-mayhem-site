@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Project Mayhem: Survival Week</title>
+<style>
+  /* Velvet Eclipse — the app's five colours, nothing else. */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #120A10;
+    color: #F9ABC9;
+    font-family: Arial, Helvetica, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 16px;
+  }
+  .card {
+    max-width: 520px;
+    width: 100%;
+    background: #1D1019;
+    border: 1px solid #E75480;
+    border-radius: 20px;
+    padding: 36px 30px 30px;
+    text-align: center;
+    box-shadow: 0 0 44px rgba(231, 84, 128, 0.22);
+  }
+  .logo {
+    width: 96px;
+    height: 96px;
+    border-radius: 24px;
+    display: block;
+    margin: 0 auto;
+  }
+  h1 {
+    color: #FFC7DD;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 26px;
+    margin: 18px 0 4px;
+  }
+  .brand-sub {
+    color: #E75480;
+    font-size: 11px;
+    letter-spacing: 3px;
+    margin-bottom: 18px;
+  }
+  p {
+    font-size: 15px;
+    line-height: 1.7;
+    margin: 0 0 8px;
+  }
+  .fine {
+    color: #8a7280;
+    font-size: 12.5px;
+    line-height: 1.6;
+    margin-top: 18px;
+  }
+  .btn {
+    display: inline-block;
+    background: #E75480;
+    color: #FFF7FA;
+    font-size: 16px;
+    font-weight: bold;
+    text-decoration: none;
+    padding: 15px 34px;
+    border-radius: 999px;
+    margin-top: 20px;
+    box-shadow: 0 6px 26px rgba(231, 84, 128, 0.5);
+  }
+  .btn:active { transform: scale(0.98); }
+  .hidden { display: none; }
+  .footer {
+    text-align: center;
+    color: #5c4753;
+    font-size: 11px;
+    margin-top: 16px;
+  }
+</style>
+</head>
+<body>
+  <main>
+    <div class="card">
+      <img class="logo" alt="Project Mayhem"
+           src="https://xyiovkhqjhjbsaueqznj.supabase.co/storage/v1/object/public/releases/f36fabcd-a71d-4132-9a4f-3cf20e958310.png">
+      <h1>Project Mayhem</h1>
+      <p class="brand-sub">SURVIVAL WEEK</p>
+
+      <!-- Default / signup confirmation -->
+      <div id="view-default">
+        <p><strong style="color:#FFC7DD;">All confirmed &#10003;</strong></p>
+        <p>Your email is confirmed and your account is ready.<br>
+           Now open Project Mayhem on your phone to continue.</p>
+      </div>
+
+      <!-- Password recovery -->
+      <div id="view-recovery" class="hidden">
+        <p><strong style="color:#FFC7DD;">Password link verified &#10003;</strong></p>
+        <p>Now open Project Mayhem on your phone to choose your new password.</p>
+      </div>
+
+      <!-- Expired / invalid link -->
+      <div id="view-error" class="hidden">
+        <p><strong style="color:#FFC7DD;">That link didn&rsquo;t work</strong></p>
+        <p id="error-text">It may have expired &mdash; links don&rsquo;t live forever.
+           Open the app and request a fresh one, then tap it on your phone.</p>
+      </div>
+
+      <a id="open-app" class="btn" href="projectmayhem://auth-callback">Open Project Mayhem</a>
+
+      <p class="fine" id="fine-note">If the button doesn&rsquo;t open the app, just open
+        Project Mayhem on your phone yourself &mdash; on a computer there is no app
+        to open, and that&rsquo;s fine: the important step already happened.</p>
+    </div>
+    <p class="footer">Project Mayhem: Survival Week &mdash; made with &#127801; for one very loved person.</p>
+  </main>
+
+<script>
+  // Supabase sends the reader here (the Auth "Site URL") after it
+  // verifies an email link, appending the session as a URL
+  // fragment: #access_token=...&refresh_token=...&type=signup
+  // (or type=recovery for password resets). Some flows use the
+  // query string instead. Either way, we hand EVERYTHING we were
+  // given to the phone app, untouched, through its deep link —
+  // the app finishes the sign-in / password reset itself.
+  (function () {
+    function parse(str) {
+      var out = {};
+      if (!str) return out;
+      str.replace(/^[#?]/, '').split('&').forEach(function (pair) {
+        if (!pair) return;
+        var i = pair.indexOf('=');
+        var k = i < 0 ? pair : pair.slice(0, i);
+        var v = i < 0 ? '' : pair.slice(i + 1);
+        try { out[decodeURIComponent(k)] = decodeURIComponent(v); }
+        catch (e) { out[k] = v; }
+      });
+      return out;
+    }
+
+    var frag = window.location.hash || '';
+    var query = window.location.search || '';
+    var params = {};
+    var fromQuery = parse(query);
+    var fromFrag = parse(frag);
+    for (var k in fromQuery) params[k] = fromQuery[k];
+    for (var k2 in fromFrag) params[k2] = fromFrag[k2];
+
+    // The "Open the app" button carries the SAME fragment the
+    // app already understands (its handler reads query + fragment).
+    var deep = 'projectmayhem://auth-callback';
+    if (frag) deep += frag;
+    else if (query) deep += '?' + query.slice(1);
+    document.getElementById('open-app').setAttribute('href', deep);
+
+    var type = params['type'] || '';
+    var hasError = params['error'] || params['error_description'];
+
+    function show(id) {
+      ['view-default', 'view-recovery', 'view-error'].forEach(function (v) {
+        document.getElementById(v).classList.toggle('hidden', v !== id);
+      });
+    }
+
+    if (hasError) {
+      show('view-error');
+      var desc = params['error_description'];
+      if (desc) {
+        document.getElementById('error-text').textContent =
+          'That link didn\u2019t work (' + desc.replace(/\+/g, ' ') + '). ' +
+          'Open the app and request a fresh one, then tap it on your phone.';
+      }
+      // A dead link has no session to hand over — hide the button.
+      document.getElementById('open-app').classList.add('hidden');
+      document.getElementById('fine-note').classList.add('hidden');
+    } else if (type === 'recovery') {
+      show('view-recovery');
+    } else {
+      show('view-default');
+    }
+  })();
+</script>
+<noscript>
+  <p style="text-align:center;margin-top:12px;font-size:13px;">
+    Your email step is done — now open Project Mayhem on your phone to continue.
+  </p>
+</noscript>
+</body>
+</html>
